@@ -1,3 +1,8 @@
+# This script computes the complex dielectric permittivity of a material 
+# over a frequency range using a Debye relaxation model. Identifies the 
+# frequencies of maximum imaginary permittivity and the cutoff frequency 
+# and performs a linear regression between cutoff frequency and temperature.
+
 # -*- coding: utf-8 -*-
 """
 Created on Mon Sep 29 14:31:27 2025
@@ -22,47 +27,47 @@ To = 133
 
 # We also define the given functions
 def epsilon_o(T):
-    """Dielectric permitivity estàtica en funció de T"""
+    """Static dielectric permittivity as a function of T"""
     return a1 - b1*T + c1*T**2 - d1*T**3
 
 def epsilon_inf(T):
-    """Permitivitat a freqüències infinites en funció de T"""
+    """Permittivity at infinite frequencies as a function of T"""
     return epsilon_o(T) - a2*np.exp(-b2*T)
 
 def tau(T):
-    """ Temps de relaxacio rotacional"""
+    """ Rotational relaxation time"""
     return c2*np.exp(d2/(T+To))
 
 def epsilon(freq):
-    """Permitivitat dielectrica en funció de la freqüència"""
+    """Dielectric permittivity as a function of frequency"""
     return epsilon_inf(T) + (epsilon_o(T)-epsilon_inf(T))/(1 - 1j*2*np.pi*freq*tau(T))
 
 def vt(freq):
-    """Diferència entre la part imaginària i real de la permitivitat"""
+    """Difference between the imaginary and real parts of the permittivity"""
     return np.imag(epsilon(freq))- np.real(epsilon(freq))
 
 
 
-T = 0 # Temperatura inicial en ºC
+T = 0 # Initial temperature in ºC
 a = 0
-freq = np.logspace(8, 12) # Freqüència
-freqt = np.empty([5,2]) # Freqüència de tall
-y = np.empty([50,5], dtype=np.complex128) # Array per emmagatzemar les permitivitats
+freq = np.logspace(8, 12) # Frequency
+freqt = np.empty([5,2]) # Cutoff frequency
+y = np.empty([50,5], dtype=np.complex128) # Array to store the permittivities
 resultats_freq = []
 resultats_max = []
 
-# Bucle principal que varia la temperatura de 20 en 20 graus fins a 100°C
+# Main loop that varies the temperature from 20 to 100°C in steps of 20 degrees
 while T < 100:
     T = T + 20
     n = 0
     
-    # Bucle per calcular la permitivitat per a cada freqüència
+    # Loop to calculate the permittivity for each frequency
     while n < freq.size:
         sol = epsilon(freq[n])
         y[n, a] = sol
         n = n + 1
         
-    # APARTAT 2 i 3: Trobar la freqüència on la part imaginària és màxima
+    # PART 2 and 3: Find the frequency where the imaginary part is maximum
     sol= fsolve(vt,1e10)
     freqt[a,0] = sol[0]
     freqt[a,1] = T
@@ -72,26 +77,26 @@ while T < 100:
         f"{maxim:.3e}Hz",
         f"{sol[0]:.3e}Hz"])
     
-    # APARTAT 3: Trobar la freqüència on la part imaginària i la real tenen
+    # PART 3: Find the frequency where the imaginary part and the real part have
     a = a + 1
 
 
-# Imprimim en consola els resultats de l'apartat 2
-print("TAULA 1: MÀXIMS DE ε IMAGINARIA I FREQ. DE TALL")
-headers_frecuencias = ["Temperatura", "Freqüència on εi max", "Freqüència de Tall"]
+# Print the results of part 2 to the console
+print("TABLE 1: MAXIMA OF ε IMAGINARY AND CUTOFF FREQ.")
+headers_frecuencias = ["Temperature", "Frequency where εi max", "Cutoff Frequency"]
 print(tabulate(resultats_max, headers=headers_frecuencias, 
                tablefmt="fancy_grid", stralign="center"))
 
-# Separem la part imaginària de la real de ε
+# Separate the imaginary part from the real part of ε
 imagy = np.imag(y)
 realy = np.real(y)
 
-# PRIMERA FIGURA: permitivitat en relació a la freqüència
+# FIRST FIGURE: permittivity versus frequency
 plt.figure()
 plt.semilogx()
 
 plt.grid(True)
-plt.xlabel("Freqüència (Hz)")
+plt.xlabel("Frequency (Hz)")
 plt.ylabel(r'$\epsilon$')
 
 
@@ -100,31 +105,26 @@ labels = [f'{T}°C' for T in freqt[:,1]]
 
 
 for i in range(5):
-    # Parts reals per a diferents temperatures
+    # Real parts for different temperatures
     plt.plot(freq, realy[:, i], colors[i], label= f'({labels[i]})')
-    # Parts imaginàries per a diferents temperatures
+    # Imaginary parts for different temperatures
     plt.plot(freq, imagy[:, i], colors[i])
     
 plt.legend()
 
 
-# Regressió lineal per trobar la relació entre freqüència de tall i temperatura
+# Linear regression to find the relationship between cutoff frequency and temperature
 reg = linregress(freqt[:,0], freqt[:,1], alternative='greater')
 print("\n")
-print(f"En la recta de regressió y = a + bx, a={reg[1]:.4g} b={reg[0]:.4g} i el coeficient de corelació és r = {1}.")
+print(f"In the regression line y = a + bx, a={reg[1]:.4g} b={reg[0]:.4g} and the correlation coefficient is r = {1}.")
 
 
-# SEGONA FIGURA: temperatura en relació a la freqüència de tall
+# SECOND FIGURE: temperature versus cutoff frequency
 plt.figure()
 plt.xlim(1e10, 0.9e11)
 plt.grid(True)
-plt.xlabel("Freqüència de tall (Hz)")
+plt.xlabel("Cutoff frequency (Hz)")
 plt.ylabel("T (ºC)")
 plt.plot(freqt[:,0], freqt[:,1],marker='o', ls=" ")
 plt.plot(freqt[:,0], reg[1]+reg[0]*freqt[:,0], label=f"y = {reg[1]:.4g} + {reg[0]:.4g} x")
 plt.legend()
-
-
-
-
-
