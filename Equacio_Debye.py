@@ -9,7 +9,7 @@ from scipy.optimize import fsolve
 from scipy.stats import linregress
 from tabulate import tabulate
 
-# Definició de constants
+# Given constants
 a1 = 87.9
 b1 = 0.404
 c1 = 9.59e-4
@@ -20,9 +20,9 @@ c2 = 1.37e-13
 d2 = 651
 To = 133
 
-#Definim també les funcións que s'esmenten a l'enunciat
+# We also define the given functions
 def epsilon_o(T):
-    """Permitivitat dielèctrica estàtica en funció de T"""
+    """Dielectric permitivity estàtica en funció de T"""
     return a1 - b1*T + c1*T**2 - d1*T**3
 
 def epsilon_inf(T):
